@@ -179,11 +179,11 @@ def translate_num(value: int, short=False) -> str:
 def translate_10power(value: int) -> str:
     """To return power of 10 name"""
     if value in powers10:
-        result = f'{numbers[1]} {powers10[value][0]}'
+        result = f'{powers10[value][0]}'
     elif value - 1 in powers10:
         result = f'{numbers[10]} {powers10[value - 1][2]}'
     elif value - 2 in powers10:
-        result = f'{numbers[10]} {powers10[value - 2][2]}'
+        result = f'{numbers[100]} {powers10[value - 2][2]}'
     else:
         result = msg.power10_too_big.format(value)
     return result.capitalize()
