@@ -140,15 +140,15 @@ def _hundreds(value: int, short: bool) -> str:
     """Convert small int to its nominal name or just return str"""
     if short:
         return str(value)
+    if not value:
+        return numbers[0]
     result = ''
     hundreds, tens = divmod(value, 100)
     if hundreds:
         result = numbers[hundreds * 100] + ' '
-    if not tens and not hundreds:
-        result = numbers[0]
-    elif tens <= 20:
+    if 0 < tens <= 20:
         result += numbers[tens]
-    else:
+    elif tens:
         tens, units = divmod(tens, 10)
         result += numbers[tens * 10]
         if units:
