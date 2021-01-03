@@ -144,7 +144,7 @@ class NameTheNumber(object):
     def listen(self) -> None:
         """To receive updates from the bot and to act"""
         data = tg.get_updates(self.last_update_id + 1)
-        if not data: return
+        if not data or not data.get('result'): return
         for update in data['result']:
             self._get_update_info(update)
             if 'text' in update['message']:
