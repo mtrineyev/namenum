@@ -31,6 +31,8 @@ class NameTheNumber(object):
     also can convert binary, octal and hex numbers to decimal
     """
     def __init__(self):
+        if not config.TOKEN:
+            exit('No TOKEN provided')
         self.last_update_id = 0
         self.user_input = ''
         self.user_id = ''
@@ -123,12 +125,17 @@ class NameTheNumber(object):
     def _get_update_info(self, update: dict) -> None:
         """To set basic self variables"""
         self.last_update_id = update['update_id']
+        if not update.get('message'):
+            return False
         self.user_id = update['message']['chat']['id']
         self.user_name = update['message']['from']['first_name']
+        return True
     
     
-    def _proceed_text(self) -> None:
+    def _proceed(self, text: str) -> None:
         """To analyze text command from user and to act"""
+        self.user_input = text.lower().strip('/ -!')
+        print(self._now(), self.user_name, '-->', self.user_input)
         if self._isstart(): self._start()
         elif self._ishelp(): self._help()
         elif self._isinteresting(): self._interesting()
@@ -144,14 +151,13 @@ class NameTheNumber(object):
     def listen(self) -> None:
         """To receive updates from the bot and to act"""
         data = tg.get_updates(self.last_update_id + 1)
-        if not data or not data.get('result'): return
+        if not data or not data.get('result'):
+            return
         for update in data['result']:
-            self._get_update_info(update)
+            if not self._get_update_info(update):
+                return
             if 'text' in update['message']:
-                self.user_input = update['message']['text']\
-                    .lower().strip('/ -!')
-                print(self._now(), self.user_name, '-->', self.user_input)
-                self._proceed_text()
+                self._proceed(update['message']['text'])
             else:
                 self._idle()
 
