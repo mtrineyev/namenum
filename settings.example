@@ -1,0 +1,23 @@
+"""
+Settings of the project
+
+Constants:
+
+    BOT_TOKEN - Telegram bot token received from @BotFather
+
+NameTheNumber bot v2.0 (c) 2020-2023 Maksym Trineyev
+mtrineyev@gmail.com
+"""
+
+import logging
+logging.basicConfig(
+    # filename='num_name.log',
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    level=logging.INFO
+)
+
+BOT_TOKEN = "1234567890:AABB11cc22DD33ee44FF55gg66HH77ii88J"
+
+
+if __name__ == "__main__":
+    print(__doc__)
