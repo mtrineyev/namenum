@@ -1,8 +1,14 @@
 """
 Translates natural NUMBERS as well as powers of 10 into their nominal names
 
-Methods:
-    translate_num(value: int, short=False) -> str
+Functions:
+    detect(text: str, patterns: list | tuple) -> bool
+        Find any pattern in the text
+
+    prune(text: str, patterns: list | tuple) -> str
+        Deletes all patterns from the text
+
+    words(value: int, short=False, uah=False) -> str
         To convert integer to its nominal name
     
     translate_10power(value: int) -> str:
@@ -116,13 +122,15 @@ POWERS10 = {
     606: ("трецентильйон", "трецентильйони", "трецентильйонів"),
     609: ("кватторцентильйон", "кватторцентильйони", "кватторцентильйонів"),
     666: ("😈", "😈", "😈"),
-    1991: ("Згинуть наші вороженьки, як роса на сонці\\!",
-           "Згинуть наші вороженьки, як роса на сонці\\!",
-           "Згинуть наші вороженьки, як роса на сонці\\!",),
+    1991: ("Згинуть наші вороженьки, як роса на сонці\\! ❤️🇺🇦",
+           "Згинуть наші вороженьки, як роса на сонці\\! ❤️🇺🇦",
+           "Згинуть наші вороженьки, як роса на сонці\\! ❤️🇺🇦",),
     308760: ("дуцентдуоміліанонгентновемдецільйон",
              "дуцентдуоміліанонгентновемдецільйони",
              "дуцентдуоміліанонгентновемдецільйонів"),
 }
+
+HRIVNAS = ("гривня", "гривні", "гривень")
 
 
 def _plural(amount: int, plurals: tuple) -> str:
@@ -161,13 +169,13 @@ def _hundreds(value: int, short: bool) -> str:
     return result.strip()
 
 
-def words(value: int, short=False) -> str:
+def words(value: int, short=False, uah=False) -> str:
     """To convert big integer to its nominal name"""
     result = ""
     grades = f"{value:,d}".split(",")
     grade_pow = (len(grades) - 1) * 3
-    for gr in grades:
-        n = int(gr)
+    for grade in grades:
+        n = int(grade)
         if n or not result:
             result += _hundreds(n, short)
             if grade_pow:
@@ -176,9 +184,16 @@ def words(value: int, short=False) -> str:
                 except KeyError:
                     return TRANSLATE_NUM_KEY_ERR
         grade_pow -= 3
-    result = result.replace("один тисяча", "одна тисяча")
-    result = result.replace("два тисячі", "дві тисячі")
+    result = _correct_small_plural(result, "тисяча", "тисячі")
+    if uah:
+        result += _plural(int(grades[-1]), HRIVNAS)
+        result = _correct_small_plural(result, "гривня", "гривні")
     return result.capitalize()
+
+
+def _correct_small_plural(text: str, word1: str, word2: str) -> str:
+    return text.replace(f"один {word1}", f"одна {word1}")\
+        .replace(f"два {word2}", f"дві {word2}")
 
 
 def translate_10power(value: int) -> str:
@@ -192,6 +207,32 @@ def translate_10power(value: int) -> str:
     else:
         return POWER10_TOO_BIG.format(value)
     return result.capitalize()
+
+
+def detect(text: str, patterns: list | tuple) -> bool:
+    return any([p in text.lower() for p in patterns])
+
+
+def prune(text: str, patterns: list | tuple) -> str:
+    stripped = text.lower()
+    for pattern in patterns:
+        stripped = stripped.replace(pattern, "")
+    return stripped
+
+
+def decimal_str(number: int, uah: bool) -> str:
+    result = f"\\= {number:,d}"
+    return _add_uah(result, uah) + "\n\n"
+
+
+def float_str(number: float, uah: bool) -> str:
+    result = f"\\= {int(number):,d}"
+    result += f"{number-int(number):.2f}".replace(".", r"\.")[1:]
+    return _add_uah(result, uah) + "\n\n"
+
+
+def _add_uah(text: str, uah: bool) -> str:
+    return text + (r" грн\." if uah else "")
 
 
 if __name__ == "__main__":

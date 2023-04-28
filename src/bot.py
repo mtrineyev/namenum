@@ -9,18 +9,23 @@ mtrineyev@gmail.com
 
 import logging
 import random
-import telebot
+from telebot import TeleBot
 
 from settings import BOT_TOKEN
-from src.thesaurus.commands import HELP, EASTER, START, INTERESTING
+from src.thesaurus.commands import (
+    HELP, EASTER, START, INTERESTING, SHORTS, UAH
+)
 from src.thesaurus.messages import (
-    INTERESTING_MSG, ERRORS, START_MSG, HELP_MSG, DECIMAL, FLOAT, EASTER_MSG,
+    INTERESTING_MSG, ERRORS, START_MSG, HELP_MSG, EASTER_MSG,
     STICKER_REPLY, EVAL_ERR, POWER10_WRONG_POWER
 )
-from src.utils import words, translate_10power
+from src.utils import (
+    words, translate_10power, detect, prune, decimal_str, float_str
+)
 
 
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode="MarkdownV2")
+bot = TeleBot(
+    BOT_TOKEN, parse_mode="MarkdownV2", disable_web_page_preview=True)
 
 
 @bot.message_handler(commands=START)
@@ -32,7 +37,7 @@ def start_command(message) -> None:
 @bot.message_handler(commands=HELP)
 def help_command(message) -> None:
     bot.send_message(
-        message.from_user.id, HELP_MSG, disable_web_page_preview=True)
+        message.from_user.id, HELP_MSG)
 
 
 @bot.message_handler(commands=INTERESTING)
@@ -51,11 +56,14 @@ def easter(message) -> None:
 @bot.message_handler(content_types=["text"])
 def tell_number(message) -> None:
     user_input = message.text
-    if need_short := user_input[:2] == "0s":
-        user_input = message.text[2:]
+    if short := detect(user_input, SHORTS):
+        user_input = prune(user_input, SHORTS)
+    if uah := detect(user_input, UAH):
+        user_input = prune(user_input, UAH)
+    user_input = user_input.strip()
     ten, _, power = user_input.rpartition("@")
     if user_input.isdecimal():
-        reply = words(int(user_input), need_short)
+        reply = words(int(user_input), short, uah)
     elif ten == "10":
         try:
             reply = translate_10power(int(power))
@@ -65,20 +73,16 @@ def tell_number(message) -> None:
         try:
             value = eval(user_input)
             if isinstance(value, int):
-                reply = DECIMAL.format(value) + words(value, need_short)
+                reply = decimal_str(value, uah) + words(value, short, uah)
             elif isinstance(value, float):
-                bot.send_message(
-                    message.from_user.id,
-                    FLOAT.format(value) +
-                    words(int(round(value, 0)), need_short),
-                    parse_mode="HTML")
-                return
+                reply = (float_str(value, uah) +
+                         words(int(round(value, 0)), short, uah))
             else:
                 reply = EVAL_ERR
         except (SyntaxError, NameError, ValueError):
             reply = random.choice(ERRORS)
     bot.send_message(
-        message.from_user.id, reply, disable_web_page_preview=True)
+        message.from_user.id, reply)
     logging.info(f"{message.from_user.first_name=}, {message.text=}")
 
 
