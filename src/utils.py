@@ -209,11 +209,11 @@ def translate_10power(value: int) -> str:
     return result.capitalize()
 
 
-def detect(text: str, patterns: list | tuple) -> bool:
+def detect(text: str, patterns) -> bool:
     return any([p in text.lower() for p in patterns])
 
 
-def prune(text: str, patterns: list | tuple) -> str:
+def prune(text: str, patterns) -> str:
     stripped = text.lower()
     for pattern in patterns:
         stripped = stripped.replace(pattern, "")
