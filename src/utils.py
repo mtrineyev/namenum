@@ -2,23 +2,30 @@
 Translates natural NUMBERS as well as powers of 10 into their nominal names
 
 Functions:
-    detect(text: str, patterns: list | tuple) -> bool
-        Find any pattern in the text
+    get_ten_power(text: str) -> str
+        Returns power of 10 name
 
-    prune(text: str, patterns: list | tuple) -> str
-        Deletes all patterns from the text
+    my_eval(text: str, short: bool, uah: bool) -> str
+        Evaluates text, calculates factorial if necessary,
+        formats result as short or/and uah
+
+    parse(text: str) -> tuple
+        Finds "short" and "uah" in text and delete them
+        returns stripped text, short and uah
 
     words(value: int, short=False, uah=False) -> str
-        To convert integer to its nominal name
+        Converts integer to its nominal name
     
-    translate_10power(value: int) -> str:
-        To return power of 10 name
-
 NameTheNumberBot v2.0 (c) 2020-2023 Maksym Trineyev
 mtrineyev@gmail.com
 """
+from random import choice
 
-from src.thesaurus.messages import TRANSLATE_NUM_KEY_ERR, POWER10_TOO_BIG
+from src.thesaurus.commands import SHORTS, UAH
+from src.thesaurus.messages import (
+    TRANSLATE_NUM_KEY_ERR, POWER10_TOO_BIG, POWER10_WRONG_POWER,
+    EVAL_ERR, ERRORS
+)
 
 
 NUMBERS = {
@@ -133,6 +140,32 @@ POWERS10 = {
 HRIVNAS = ("гривня", "гривні", "гривень")
 
 
+def words(value: int, short=False, uah=False) -> str:
+    """To convert big integer to its nominal name"""
+    result = ""
+    minus = ""
+    if value < 0:
+        minus = "Мінус "
+        value = - value
+    grades = f"{value:,d}".split(",")
+    grade_pow = (len(grades) - 1) * 3
+    for grade in grades:
+        n = int(grade)
+        if n or not result:
+            result += _hundreds(n, short)
+            if grade_pow:
+                try:
+                    result += _plural(n, POWERS10[grade_pow])
+                except KeyError:
+                    return TRANSLATE_NUM_KEY_ERR
+        grade_pow -= 3
+    result = _correct_small_plural(result, "тисяча", "тисячі")
+    if uah:
+        result += _plural(int(grades[-1]), HRIVNAS)
+        result = _correct_small_plural(result, "гривня", "гривні")
+    return f"{minus}{result}".capitalize()
+
+
 def _plural(amount: int, plurals: tuple) -> str:
     """Returns corresponding plural from the tuple to 1, 2, 5 principal"""
     if amount == 0:
@@ -169,39 +202,16 @@ def _hundreds(value: int, short: bool) -> str:
     return result.strip()
 
 
-def words(value: int, short=False, uah=False) -> str:
-    """To convert big integer to its nominal name"""
-    result = ""
-    minus = ""
-    if value < 0:
-        minus = "Мінус "
-        value = - value
-    grades = f"{value:,d}".split(",")
-    grade_pow = (len(grades) - 1) * 3
-    for grade in grades:
-        n = int(grade)
-        if n or not result:
-            result += _hundreds(n, short)
-            if grade_pow:
-                try:
-                    result += _plural(n, POWERS10[grade_pow])
-                except KeyError:
-                    return TRANSLATE_NUM_KEY_ERR
-        grade_pow -= 3
-    result = _correct_small_plural(result, "тисяча", "тисячі")
-    if uah:
-        result += _plural(int(grades[-1]), HRIVNAS)
-        result = _correct_small_plural(result, "гривня", "гривні")
-    return f"{minus}{result}".capitalize()
-
-
 def _correct_small_plural(text: str, word1: str, word2: str) -> str:
     return text.replace(f"один {word1}", f"одна {word1}")\
         .replace(f"два {word2}", f"дві {word2}")
 
 
-def translate_10power(value: int) -> str:
-    """To return power of 10 nominal name"""
+def get_ten_power(power: str) -> str:
+    try:
+        value = int(power)
+    except ValueError:
+        return POWER10_WRONG_POWER
     if value in POWERS10:
         result = f"{POWERS10[value][0]}"
     elif value - 1 in POWERS10:
@@ -213,26 +223,39 @@ def translate_10power(value: int) -> str:
     return result.capitalize()
 
 
-def detect(text: str, patterns) -> bool:
+def parse(text: str) -> tuple:
+    user_input = text
+    if short := _detect(user_input, SHORTS):
+        user_input = _prune(user_input, SHORTS)
+    if uah := _detect(user_input, UAH):
+        user_input = _prune(user_input, UAH)
+    return user_input.strip(), short, uah
+
+
+def _detect(text: str, patterns) -> bool:
     return any([p in text.lower() for p in patterns])
 
 
-def prune(text: str, patterns) -> str:
+def _prune(text: str, patterns) -> str:
     stripped = text.lower()
     for pattern in patterns:
         stripped = stripped.replace(pattern, "")
     return stripped
 
 
-def format_num(number: float, uah: bool) -> str:
-    result = f"\\= {int(number):,d}".replace("-", r"\-")
-    if isinstance(number, float):
-        result += f"{number-int(number):.2f}".replace(".", r"\.")[1:]
-    return _add_uah(result, uah) + "\n\n"
-
-
-def _add_uah(text: str, uah: bool) -> str:
-    return text + (r" грн\." if uah else "")
+def my_eval(text: str, short: bool, uah: bool) -> str:
+    try:
+        value = (factorial(int(text[:-1]))
+                 if is_factorial(text) else eval(text))
+        if isinstance(value, int) or isinstance(value, float):
+            return (_format_num(value, uah) +
+                    words(int(round(value, 0)), short, uah))
+        else:
+            raise ValueError
+    except (SyntaxError, ZeroDivisionError, TypeError, ValueError):
+        return EVAL_ERR
+    except NameError:
+        return choice(ERRORS)
 
 
 def factorial(n: int) -> int:
@@ -246,6 +269,17 @@ def factorial(n: int) -> int:
 
 def is_factorial(text: str) -> bool:
     return text[-1] == "!" and text[:-1].isdecimal()
+
+
+def _format_num(number: float, uah: bool) -> str:
+    result = f"\\= {int(number):,d}".replace("-", r"\-")
+    if isinstance(number, float):
+        result += f"{number-int(number):.2f}".replace(".", r"\.")[1:]
+    return _add_uah(result, uah) + "\n\n"
+
+
+def _add_uah(text: str, uah: bool) -> str:
+    return text + (r" грн\." if uah else "")
 
 
 if __name__ == "__main__":
