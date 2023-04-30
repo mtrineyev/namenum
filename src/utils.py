@@ -172,6 +172,10 @@ def _hundreds(value: int, short: bool) -> str:
 def words(value: int, short=False, uah=False) -> str:
     """To convert big integer to its nominal name"""
     result = ""
+    minus = ""
+    if value < 0:
+        minus = "Мінус "
+        value = - value
     grades = f"{value:,d}".split(",")
     grade_pow = (len(grades) - 1) * 3
     for grade in grades:
@@ -188,7 +192,7 @@ def words(value: int, short=False, uah=False) -> str:
     if uah:
         result += _plural(int(grades[-1]), HRIVNAS)
         result = _correct_small_plural(result, "гривня", "гривні")
-    return result.capitalize()
+    return f"{minus}{result}".capitalize()
 
 
 def _correct_small_plural(text: str, word1: str, word2: str) -> str:
@@ -220,19 +224,28 @@ def prune(text: str, patterns) -> str:
     return stripped
 
 
-def decimal_str(number: int, uah: bool) -> str:
-    result = f"\\= {number:,d}"
-    return _add_uah(result, uah) + "\n\n"
-
-
-def float_str(number: float, uah: bool) -> str:
-    result = f"\\= {int(number):,d}"
-    result += f"{number-int(number):.2f}".replace(".", r"\.")[1:]
+def format_num(number: float, uah: bool) -> str:
+    result = f"\\= {int(number):,d}".replace("-", r"\-")
+    if isinstance(number, float):
+        result += f"{number-int(number):.2f}".replace(".", r"\.")[1:]
     return _add_uah(result, uah) + "\n\n"
 
 
 def _add_uah(text: str, uah: bool) -> str:
     return text + (r" грн\." if uah else "")
+
+
+def factorial(n: int) -> int:
+    if n < 0:
+        raise ValueError
+    result = 1
+    for i in range(2, n + 1):
+        result *= i
+    return result
+
+
+def is_factorial(text: str) -> bool:
+    return text[-1] == "!" and text[:-1].isdecimal()
 
 
 if __name__ == "__main__":

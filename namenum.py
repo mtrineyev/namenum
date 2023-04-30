@@ -10,11 +10,12 @@ mtrineyev@gmail.com
 """
 
 import logging
-from src.bot import bot
+from src.bot import bot, listener
 
 
 def main():
     logging.info("Bot started and waiting for users input...")
+    bot.set_update_listener(listener)
     bot.infinity_polling()
 
 
