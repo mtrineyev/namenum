@@ -11,7 +11,7 @@ mtrineyev@gmail.com
 
 import logging
 logging.basicConfig(
-    # filename='num_name.log',
+    # filename='name_num.log',
     format="%(asctime)s [%(levelname)s] %(message)s",
     level=logging.INFO
 )
