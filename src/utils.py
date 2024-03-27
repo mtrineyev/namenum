@@ -259,7 +259,7 @@ def my_eval(text: str, short: bool, uah: bool) -> str:
 
 
 def factorial(n: int) -> int:
-    if n < 0:
+    if n < 0 or n > 1000:
         raise ValueError
     result = 1
     for i in range(2, n + 1):
